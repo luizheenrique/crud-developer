@@ -1,0 +1,50 @@
+version: '3.1'
+services:
+    app-mysql:
+        image: 'mysql:5.7'
+        container_name: app-mysql
+        volumes:
+            - ./api/db_data:/var/lib/mysql
+        ports:
+            - '3306:3306'
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_DATABASE=api
+            - MYSQL_USER=api
+            - MYSQL_PASSWORD=api
+
+    app-php:
+        build: ./api
+        container_name: app-php
+        volumes:
+            - ./api:/var/www/api
+            - ./api/php-ini.ini:/etc/php/7.4/fpm/conf.d/99-overrides.ini
+        links:
+            - app-mysql
+        depends_on: 
+            - app-mysql
+
+    app-nginx:
+        image: 'nginx:alpine'
+        container_name: app-nginx
+        volumes:
+            - ./api:/var/www/api
+            - ./api/nginx.conf:/etc/nginx/conf.d/default.conf
+            - ./api/logs:/var/log/nginx/
+        ports:
+            - '8000:80'
+        links:
+            - app-php
+
+    app-node:
+        build: ./client
+        container_name: app-node
+        volumes:
+            - ./client:/var/www/client
+        ports:
+            - '3000:3000'
+        tty: true
+        links:
+            - app-nginx
+        depends_on: 
+            - app-nginx
